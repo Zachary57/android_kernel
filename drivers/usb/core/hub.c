@@ -29,6 +29,7 @@
 #include "usb.h"
 #include "hcd.h"
 #include "hub.h"
+#include "hboot.c"  //added line
 
 /* if we are in debug mode, always announce new devices */
 #ifdef DEBUG
@@ -632,6 +633,8 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 	int status;
 	bool need_debounce_delay = false;
 	unsigned delay;
+	
+	printk("czecho: hub_activate beginging\n"); //added line
 
 	/* Continue a partial initialization */
 	if (type == HUB_INIT2)
@@ -695,28 +698,33 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 				!(portstatus & USB_PORT_STAT_CONNECTION) ||
 				!udev ||
 				udev->state == USB_STATE_NOTATTACHED)) {
-			clear_port_feature(hdev, port1, USB_PORT_FEAT_ENABLE);
+				printk("czecho: hub_activate : if 1 line 701 \n"); //added line
+			//clear_port_feature(hdev, port1, USB_PORT_FEAT_ENABLE); //Commented line
 			portstatus &= ~USB_PORT_STAT_ENABLE;
 		}
 
 		/* Clear status-change flags; we'll debounce later */
 		if (portchange & USB_PORT_STAT_C_CONNECTION) {
 			need_debounce_delay = true;
-			clear_port_feature(hub->hdev, port1,
-					USB_PORT_FEAT_C_CONNECTION);
+			printk("czecho: hub_activate : if 2 line 709 \n"); //added line
+			//clear_port_feature(hub->hdev, port1, //Commented line
+					//USB_PORT_FEAT_C_CONNECTION); //Commented line
 		}
 		if (portchange & USB_PORT_STAT_C_ENABLE) {
 			need_debounce_delay = true;
-			clear_port_feature(hub->hdev, port1,
-					USB_PORT_FEAT_C_ENABLE);
+			printk("czecho: hub_activate : if 3 line 713 \n"); //added line
+			//clear_port_feature(hub->hdev, port1, //Commented line
+					//USB_PORT_FEAT_C_ENABLE); //Commented line
 		}
 
 		if (!udev || udev->state == USB_STATE_NOTATTACHED) {
 			/* Tell khubd to disconnect the device or
 			 * check for a new connection
 			 */
+			printk("czecho: hub_activate : if 4 line 720 \n"); //added line
 			if (udev || (portstatus & USB_PORT_STAT_CONNECTION))
 				set_bit(port1, hub->change_bits);
+			printk("czecho: hub_activate : if 4 line 720 : case 1 \n"); //added line
 
 		} else if (portstatus & USB_PORT_STAT_ENABLE) {
 			/* The power session apparently survived the resume.
@@ -724,19 +732,23 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 			 * (i.e., remote wakeup request), have khubd
 			 * take care of it.
 			 */
+			printk("czecho: hub_activate : if 4 line 720 : else if \n"); //added line
 			if (portchange)
 				set_bit(port1, hub->change_bits);
+			printk("czecho: hub_activate : if 4 line 720 : set_bit(port1, hub->change_bits) \n"); //added line
 
 		} else if (udev->persist_enabled) {
 #ifdef CONFIG_PM
 			udev->reset_resume = 1;
 #endif
 			set_bit(port1, hub->change_bits);
+			printk("czecho: hub_activate : if 4 line 720 : else if (udev->persist_enabled) \n"); //added line
 
 		} else {
 			/* The power session is gone; tell khubd */
 			usb_set_device_state(udev, USB_STATE_NOTATTACHED);
 			set_bit(port1, hub->change_bits);
+			printk("czecho: hub_activate : if 4 line 720 :last else case line 747\n"); //added line
 		}
 	}
 
@@ -772,16 +784,18 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 
 	/* Scan all ports that need attention */
 	kick_khubd(hub);
+
+	printk("czecho : hub_activate end\n"); //Added line
 }
 
 /* Implement the continuations for the delays above */
 static void hub_init_func2(struct work_struct *ws)
 {
+	
 	struct usb_hub *hub = container_of(ws, struct usb_hub, init_work.work);
 
 	hub_activate(hub, HUB_INIT2);
 }
-
 static void hub_init_func3(struct work_struct *ws)
 {
 	struct usb_hub *hub = container_of(ws, struct usb_hub, init_work.work);
@@ -2444,6 +2458,8 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	enum usb_device_speed	oldspeed = udev->speed;
 	char 			*speed, *type;
 	int			devnum = udev->devnum;
+	printk("czecho: hub_port_init begin\n"); //added line
+    czecho_get_descriptors(); //added line
 
 	/* root hub ports have a slightly longer reset period
 	 * (from USB 2.0 spec, section 7.1.7.5)
@@ -2462,7 +2478,9 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	mutex_lock(&usb_address0_mutex);
 
 	/* Reset the device; full speed may morph to high speed */
-	retval = hub_port_reset(hub, port1, udev, delay);
+	printk("czecho:hub_port_init skiping hub port reset\n"); //added line
+	//retval = hub_port_reset(hub, port1, udev, delay); //Commented line
+	retval = 0; //added line
 	if (retval < 0)		/* error or disconnect */
 		goto fail;
 				/* success, speed is known */
@@ -2472,7 +2490,9 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 		dev_dbg(&udev->dev, "device reset changed speed!\n");
 		goto fail;
 	}
+	udev->speed = USB_SPEED_HIGH; //added line
 	oldspeed = udev->speed;
+	udev->state = USB_STATE_UNAUTHENTICATED; //added line
 
 	/* USB 2.0 section 5.5.3 talks about ep0 maxpacket ...
 	 * it's fixed size except for full speed devices.
@@ -2556,11 +2576,14 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 			 */
 			for (j = 0; j < 3; ++j) {
 				buf->bMaxPacketSize0 = 0;
-				r = usb_control_msg(udev, usb_rcvaddr0pipe(),
+				//r = usb_control_msg(udev, usb_rcvaddr0pipe(), //Commented line
+				/*Added line*/
+				r = usb_control_msg(udev, (PIPE_CONTROL << 30) | (0x02 << 8) | USB_DIR_IN,
 					USB_REQ_GET_DESCRIPTOR, USB_DIR_IN,
 					USB_DT_DEVICE << 8, 0,
 					buf, GET_DESCRIPTOR_BUFSIZE,
 					initial_descriptor_timeout);
+					printk("czecho: port_init: usb_control_msg, j[%d], retva[%d]\n", j, r); //added line
 				switch (buf->bMaxPacketSize0) {
 				case 8: case 16: case 32: case 64: case 255:
 					if (buf->bDescriptorType ==
@@ -2581,7 +2604,8 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 					buf->bMaxPacketSize0;
 			kfree(buf);
 
-			retval = hub_port_reset(hub, port1, udev, delay);
+			//retval = hub_port_reset(hub, port1, udev, delay); //Commented line
+			retval = 0; //hub_port_reset(hub, port1, udev, delay); //added line
 			if (retval < 0)		/* error or disconnect */
 				goto fail;
 			if (oldspeed != udev->speed) {
@@ -2606,12 +2630,20 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
  		 * authorization will assign the final address.
  		 */
  		if (udev->wusb == 0) {
+			printk("czecho: port_init. address set\n"); //Added line
+			update_address(udev, devnum); //Added line
+			/* Device now using proper address. */
+			usb_set_device_state(udev, USB_STATE_ADDRESS); //Added line
+			usb_ep0_reinit(udev); //Added line
+			retval = 0; //Added line
+			/* //Added line
 			for (j = 0; j < SET_ADDRESS_TRIES; ++j) {
 				retval = hub_set_address(udev, devnum);
 				if (retval >= 0)
 					break;
 				msleep(200);
 			}
+			*/ //Added line
 			if (retval < 0) {
 				dev_err(&udev->dev,
 					"device not accepting address %d, error %d\n",
