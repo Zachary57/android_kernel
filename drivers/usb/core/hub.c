@@ -29,7 +29,6 @@
 #include "usb.h"
 #include "hcd.h"
 #include "hub.h"
-#include "hboot.c"  //added line
 
 /* if we are in debug mode, always announce new devices */
 #ifdef DEBUG
