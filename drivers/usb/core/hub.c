@@ -2491,7 +2491,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	}
 	udev->speed = USB_SPEED_HIGH; //added line
 	oldspeed = udev->speed;
-	udev->state = USB_STATE_UNAUTHENTICATED; //added line
+	udev->state = USB_STATE_DEFAULT; //added line
 
 	/* USB 2.0 section 5.5.3 talks about ep0 maxpacket ...
 	 * it's fixed size except for full speed devices.
