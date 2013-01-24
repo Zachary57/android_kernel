@@ -2458,7 +2458,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	char 			*speed, *type;
 	int			devnum = udev->devnum;
 	printk("czecho: hub_port_init begin\n"); //added line
-    czecho_get_descriptors(); //added line
+    	//czecho_get_descriptors(); //added line
 
 	/* root hub ports have a slightly longer reset period
 	 * (from USB 2.0 spec, section 7.1.7.5)
